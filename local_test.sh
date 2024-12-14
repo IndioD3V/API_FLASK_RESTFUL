@@ -1,0 +1,7 @@
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=123
+export POSTGRES_DB=api_gc
+export POSTGRES_PORT=5435
+export POSTGRES_HOST=localhost
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+export KAFKA_TOPIC=project_events
