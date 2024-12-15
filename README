@@ -1,1 +1,13 @@
-docker network create app-network
+estarei disponibilizando uma docker do postgreSQL
+para utilizar é so seguir esses passos:
+
+    1 - primeiro rode "docker network create app-network" para criar a rede que ambos ficaram
+    2 - rode o comando "docker load -i postgresql.tar"
+    3 - volte a pasta da API e rode  "sudo docker-compose up -d --build" para iniciar a API
+
+a API ja esta preparada para rodar o container, porem se preferir pode rodar apenas pelo "python app.py" porem precisa de um banco de dados para isso, pode usar a imagem q eu mandei ou outra de sua escolha, porem se for o caso rode manualmente os envs que contem no arquivo local_test.sh.
+
+para testes eu disponibilizei as colletions do postman
+
+testes unitarios.
+    os testes não forma implementados na build, porem para executa-lo pode ser usado o pytest na pasta test/ ele usa o SQL lite para amarzenas os dados

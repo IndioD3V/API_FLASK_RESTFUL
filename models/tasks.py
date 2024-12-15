@@ -14,5 +14,7 @@ class Tasks(db.Model):
     project_id = Column(Integer, ForeignKey('projects.id'))
     status = Column(String, default='Ativo')
     
+    __foreign_key__ = 'legacy_id'
+    
     customer = relationship('Customer', back_populates='tasks')
     projects = relationship('Projects', back_populates='tasks')

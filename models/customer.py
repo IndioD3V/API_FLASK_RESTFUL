@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, VARCHAR
 from sqlalchemy.orm import relationship
 from datetime import date, datetime
 from libs.database import db
@@ -7,11 +7,11 @@ class Customer(db.Model):
     __tablename__ = 'customer'
     
     id = Column(Integer, primary_key=True, index=True)
-    legacy_id = Column(String(50), unique=True, index=True, nullable=False)
-    dt_created = Column(Date, default=date.today().strftime('%Y-%m-%d'))
+    legacy_id = Column(VARCHAR(50), unique=True, index=True, nullable=False)
+    dt_created = Column(Date, default=date.today())
     status = Column(String, default='Ativo')
     name = Column(String)
-    cnpj = Column(String(14))
+    cnpj = Column(VARCHAR(14))
     
     __foreign_key__ = 'legacy_id'
     

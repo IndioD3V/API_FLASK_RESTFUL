@@ -1,20 +1,25 @@
-import pytest
-from app import app  # Importa a instância do app configurado no app.py
-from libs.database import db
+from flask import Flask
+from flask_restful import Api
 from libs.database import init_db
-from libs.resources import CustomerResource
+from libs.resources import (
+    CustomerResource, ProjectsResource, 
+    TasksResource
+)
+import os
+app = Flask(__name__)
+api = Api(app)
 
-@pytest.fixture
-def app_test():
-    # Configura a aplicação para o ambiente de teste
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123@localhost:5435/test'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['TESTING'] = True
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///:memory:"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Inicializa o banco de dados com o app de teste
-    init_db(app)
+init_db(app)
 
-    with app.app_context():
-        db.create_all()  # Cria as tabelas antes de cada teste
-        yield app  # Fornece o app para o teste
-        db.drop_all()  # Limpa as tabelas após o teste
+
+# Registrando as classes de endpoint
+
+api.add_resource(CustomerResource, '/clientes')
+api.add_resource(ProjectsResource, '/projetos')
+api.add_resource(TasksResource, '/atividades')
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

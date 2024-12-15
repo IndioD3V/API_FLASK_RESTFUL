@@ -15,5 +15,7 @@ class Projects(db.Model):
     amount = Column(Float)
     project_name = Column(String)
     
+    __foreign_key__ = 'legacy_id'
+    
     customer = relationship('Customer', back_populates='projects')
     tasks = relationship('Tasks', back_populates='projects')
