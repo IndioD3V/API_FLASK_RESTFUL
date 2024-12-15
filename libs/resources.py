@@ -17,9 +17,15 @@ class BaseResource(Resource):
     def get(self):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
+        status_filter = request.args.get('status', None)
 
-        total = self.table.query.count()
-        table_objs = self.table.query.offset((page - 1) * per_page).limit(per_page).all()
+        query = self.table.query
+
+        if status_filter:
+            query = query.filter(self.table.status == status_filter)
+
+        total = query.count()
+        table_objs = query.offset((page - 1) * per_page).limit(per_page).all()
         total_pages = (total + per_page - 1) // per_page
 
         data = [
@@ -43,58 +49,79 @@ class BaseResource(Resource):
             }
         }), 200)
 
-
     def post(self):
         data = request.get_json()
         columns = [column for column in self.table.__table__.columns]
         values = []
 
-        try:
-            for customer_data in data:
-                new_customer_data = {
-                    column.name: customer_data.get(column.name)
-                    for column in columns
-                    if column.name in customer_data
-                }
-                new_customer = self.table(**new_customer_data)
+        for customer_data in data:
+            new_customer_data = {
+                column.name: customer_data.get(column.name)
+                for column in columns
+                if column.name in customer_data
+            }
+            new_customer = self.table(**new_customer_data)
 
-                try:
-                    db.session.add(new_customer)
-                    values.append({column.name: self.serialize(getattr(new_customer, column.name))for column in columns})
-                    
+            try:
+                # Tenta adicionar o novo cliente ao banco
+                db.session.add(new_customer)
+                db.session.commit()  # Comita a transação
+                values.append({column.name: self.serialize(
+                    getattr(
+                        new_customer, 
+                        column.name
+                        )
+                    ) for column in columns})
 
-                except IntegrityError as e:
-                    if isinstance(e.orig, UniqueViolation):
-                        db.session.rollback()
-                        key = self.table.__foreign_key__
-                        key_value = customer_data.pop(key)
-                        
-                        if key_value:
-                            existing_record = self.table.query.filter(getattr(self.table, key) == key_value).first()
-
-                            if existing_record:
-                                self.table.query.filter(getattr(self.table, key) == key_value).update(customer_data)
-                                values.append({column.name: self.serialize(getattr(new_customer, column.name))for column in columns})
+            except IntegrityError as e:
+    
+                db.session.rollback()
                 
-                return make_response(
-                        jsonify(
-                            {
-                                "success": True,
-                                "operation": "created",
-                                "values": values
-                            }
-                        ), 201
-                    )
 
-        except Exception as e:
-            db.session.rollback()
-            return make_response(jsonify({
-                "success": False,
-                "error": "InternalServerError",
-                "message": str(e)
-            }), 500)
+                if isinstance(e.orig, UniqueViolation):
+                    key = self.table.__foreign_key__  
+                    key_value = customer_data.pop(key, None)
+                    
+                    if key_value:
 
+                        existing_record = self.table.query.filter(getattr(self.table, key) == key_value).first()
+                        
+                        if existing_record:
 
+                            self.table.query.filter(getattr(self.table, key) == key_value).update(customer_data)
+                            db.session.commit() 
+                            
+                            updated_record = self.table.query.filter(getattr(self.table, key) == key_value).first()
+                            values.append(
+                                {
+                                    column.name: self.serialize(getattr(updated_record, column.name)) 
+                                    for column in columns
+                                }
+                            )
+                        else:
+                            return make_response(jsonify({
+                                "success": False,
+                                "error": "NotFound",
+                                "message": f"Record with {key} = {key_value} not found."
+                            }), 404)
+                else:
+                    raise e
+
+            except Exception as e:
+                db.session.rollback()
+                return make_response(jsonify({
+                    "success": False,
+                    "error": "InternalServerError",
+                    "message": str(e)
+                }), 500)
+
+        return make_response(
+            jsonify({
+                "success": True,
+                "operation": "created",
+                "values": values
+            }), 201
+        )
             
     def format_type(self, value, type_value:type):
         try:
